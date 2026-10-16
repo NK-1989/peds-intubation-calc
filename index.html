@@ -128,7 +128,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
 <header class="top">
   <div class="ttl">
     <h1>小児 緊急気管挿管<span>薬剤・気管チューブ計算</span></h1>
-    <span class="draft">案 v0.3</span>
+    <span class="draft">案 v0.4</span>
   </div>
   <label class="wt">
     <span class="wl">体重</span>
@@ -167,16 +167,16 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
     <li>10倍アドレナリン 0.01mg/kg（0.1mL/kg）・1回上限1mg：PALSプロバイダーマニュアル（AHA/AAP, 日本語版2021）p.89 図21</li>
     <li>フルマゼニルの1回上限 0.2mg：Shannon M, et al. J Pediatr 1997;131:582-6（PMID 9386663）</li>
     <li>気管チューブ：PALSプロバイダーマニュアル（日本語版2021）p.226-227 表56。区分の間の体重は小さい側の区分で表示。3kg未満はサイズを3kgと同じとし、深さは 体重(kg)＋6 cm（ESAIC/BJA 新生児・乳児気道管理GL, Eur J Anaesthesiol 2024;41:3-23, PMID 38018248）</li>
-    <li>i-gel：サイズ1 2〜5kg（Kayhan GE, et al. ScientificWorldJournal 2015:426186, PMID 25793219）、1.5 5〜12kg・2 10〜25kg・2.5 25〜35kg（Abukawa Y, et al. J Anesth 2012;26:357-61, PMID 22310833）、成人の3 50kg未満・4 50〜90kg・5 90kg超（Guerrier G, et al. Anaesth Crit Care Pain Med 2019;38:353-6, PMID 30336273）。境界の体重では両サイズを表示</li>
+    <li>i-gel：インターサージカル i-gel 添付文書（医療機器認証番号 22200BZX00120000、2017年5月 第2版）の「適用患者の体重（目安）」およびIntersurgical社 i-gelポスター（IGELPOSTER issue 3, 2018）。小児サイズの区分は Kayhan GE, et al. ScientificWorldJournal 2015（PMID 25793219）、Abukawa Y, et al. J Anesth 2012;26:357-61（PMID 22310833）とも一致。区分が重なる体重では両サイズを表示</li>
     <li>液量は 1mL未満を0.01mL、1mL以上を0.1mL単位で四捨五入</li>
   </ul>
   <h2>データの扱い</h2>
   <ul><li>入力した体重はこの端末の画面内だけで計算し、保存も送信もしません。</li></ul>
-  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.3（2026-10-17）</p>
+  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.4（2026-10-17）</p>
 </footer>
 
 <!-- 更新時は ?v= を上げる（古い calc.js がキャッシュから読まれるのを防ぐ） -->
-<script src="calc.js?v=0.3"></script>
+<script src="calc.js?v=0.4"></script>
 <script>
 (function () {
   'use strict';
@@ -222,9 +222,9 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
       return '<div class="ig"><span class="igl">i-gel<small>声門上器具</small></span><span class="ig-na">2kg未満は該当サイズなし</span></div>' +
         '<p class="ett-note">最小のサイズ1の適応は2〜5kg</p>' + table;
     }
-    const note = g.overlap
+    const note = (g.overlap
       ? '<b>2サイズの適応体重が重なる体重です</b>（' + g.rows.map((r) => r.size + '：' + r.text).join('／') + '）'
-      : '適応 ' + g.rows[0].text;
+      : '適応 ' + g.rows[0].text) + '。体重は目安で、体型も考慮して選ぶ（添付文書）';
     return '<div class="ig"><span class="igl">i-gel<small>声門上器具</small></span><b>' +
       g.sizes.join('<i> または </i>') + '</b></div>' +
       '<p class="ett-note">' + note + '</p>' + table;

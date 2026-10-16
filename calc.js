@@ -23,17 +23,17 @@
     { min: 30, color: '緑',     label: '30〜36kg', age: '10〜11歳',   cuff: '6.0', uncuff: '—',   depth: '18.5〜19.5' },
   ];
 
-  // i-gel（声門上器具）の体重区分。文献どおり両端を含む区間で、境界では2サイズが当てはまる
-  //   1：Kayhan 2015（PMID 25793219）  1.5〜2.5：Abukawa 2012（PMID 22310833）
-  //   3〜5：成人の区分（Guerrier 2019, PMID 30336273。3は「50kg未満」なので小児用2.5の上限35kgの次から）
+  // i-gel（声門上器具）の体重区分（目安）。両端を含む区間で、重なる体重では2サイズが当てはまる
+  //   インターサージカル i-gel 添付文書（認証番号 22200BZX00120000、2017年5月 第2版）の表。
+  //   メーカーのポスター（IGELPOSTER issue 3, 2018）と、小児サイズは Kayhan 2015・Abukawa 2012 とも一致
   const IGEL = [
     { size: '1',   min: 2,  max: 5,        text: '2〜5kg' },
     { size: '1.5', min: 5,  max: 12,       text: '5〜12kg' },
     { size: '2',   min: 10, max: 25,       text: '10〜25kg' },
     { size: '2.5', min: 25, max: 35,       text: '25〜35kg' },
-    { size: '3',   min: 35, max: 50,       text: '50kg未満（成人）', openMin: true, openMax: true },
-    { size: '4',   min: 50, max: 90,       text: '50〜90kg（成人）' },
-    { size: '5',   min: 90, max: Infinity, text: '90kg超（成人）', openMin: true },
+    { size: '3',   min: 30, max: 60,       text: '30〜60kg' },
+    { size: '4',   min: 50, max: 90,       text: '50〜90kg' },
+    { size: '5',   min: 90, max: Infinity, text: '90kg超', openMin: true },
   ];
 
   function igel(w) {
