@@ -7,17 +7,20 @@
   const W_MAX = 100;
   const ETT_MAX = 36; // 早見表の上限（kg）
 
-  // 気管チューブ早見表（PALS 表56。フロー④の表と同じ値）
-  // min は区分の下限。区分の間の体重（例 5.5kg）は小さい側の区分に入れる
+  // 気管チューブ早見表（PALSプロバイダーマニュアル 日本語版2021 表56「身長別カラーコード化蘇生テープ」）
+  // min は区分の下限。区分の間の体重（例 7.5kg）は小さい側の区分に入れる
   const ETT = [
-    { min: 0,  label: '〜5kg',    age: '3ヵ月未満', cuff: '3.0', uncuff: '3.5', depth: '9〜10.5' },
-    { min: 6,  label: '6〜9kg',   age: '3〜11ヵ月', cuff: '3.0', uncuff: '3.5', depth: '10〜11' },
-    { min: 10, label: '10〜11kg', age: '1〜2歳',    cuff: '3.5', uncuff: '4.0', depth: '11〜12' },
-    { min: 12, label: '12〜14kg', age: '2歳',       cuff: '4.0', uncuff: '4.5', depth: '12.5〜13.5' },
-    { min: 15, label: '15〜18kg', age: '3〜4歳',    cuff: '4.5', uncuff: '5.0', depth: '14〜15' },
-    { min: 19, label: '19〜23kg', age: '5〜6歳',    cuff: '5.0', uncuff: '5.5', depth: '15.5〜16.5' },
-    { min: 24, label: '24〜29kg', age: '7〜9歳',    cuff: '5.5', uncuff: '—',   depth: '17〜18' },
-    { min: 30, label: '30〜36kg', age: '10〜11歳',  cuff: '6.0', uncuff: '—',   depth: '18.5〜19.5' },
+    { min: 0,  color: '',       label: '3kg',      age: '3ヵ月未満',  cuff: '3.0', uncuff: '3.5', depth: '9〜9.5' },
+    { min: 4,  color: '',       label: '4kg',      age: '3ヵ月未満',  cuff: '3.0', uncuff: '3.5', depth: '9.5〜10' },
+    { min: 5,  color: '',       label: '5kg',      age: '3ヵ月未満',  cuff: '3.0', uncuff: '3.5', depth: '10〜10.5' },
+    { min: 6,  color: 'ピンク', label: '6〜7kg',   age: '3〜5ヵ月',   cuff: '3.0', uncuff: '3.5', depth: '10〜10.5' },
+    { min: 8,  color: '赤',     label: '8〜9kg',   age: '6〜11ヵ月',  cuff: '3.0', uncuff: '3.5', depth: '10.5〜11' },
+    { min: 10, color: '紫',     label: '10〜11kg', age: '12〜24ヵ月', cuff: '3.5', uncuff: '4.0', depth: '11〜12' },
+    { min: 12, color: '黄',     label: '12〜14kg', age: '2歳',        cuff: '4.0', uncuff: '4.5', depth: '12.5〜13.5' },
+    { min: 15, color: '白',     label: '15〜18kg', age: '3〜4歳',     cuff: '4.5', uncuff: '5.0', depth: '14〜15' },
+    { min: 19, color: '青',     label: '19〜23kg', age: '5〜6歳',     cuff: '5.0', uncuff: '5.5', depth: '15.5〜16.5' },
+    { min: 24, color: 'オレンジ', label: '24〜29kg', age: '7〜9歳',   cuff: '5.5', uncuff: '—',   depth: '17〜18' },
+    { min: 30, color: '緑',     label: '30〜36kg', age: '10〜11歳',   cuff: '6.0', uncuff: '—',   depth: '18.5〜19.5' },
   ];
 
   // 薬剤
@@ -87,7 +90,7 @@
     if (w > ETT_MAX) return null;
     let row = ETT[0];
     for (const r of ETT) if (w >= r.min) row = r;
-    // 3kg未満：サイズは3kgと同じ、深さは 体重(kg)＋6 cm（フロー④の注記）
+    // 3kg未満：サイズは3kgと同じ（フロー④の決定）、深さは 体重(kg)＋6 cm（ESAIC）
     const under3 = w < 3;
     return {
       row,

@@ -80,7 +80,8 @@ summary{cursor:pointer;color:var(--navy);font-weight:700;padding:4px 0}
 .tbl th,.tbl td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:center}
 .tbl th{font-size:12px;color:var(--sub);font-weight:700}
 .tbl td:first-child{text-align:left}
-.tbl small{color:var(--sub)}
+.tbl small{color:var(--sub);display:block;font-size:11px}
+.tbl td:not(:first-child){white-space:nowrap}
 .tbl tr.hit td{background:var(--navy-bg);font-weight:700}
 
 /* 薬剤カード */
@@ -120,7 +121,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
 <header class="top">
   <div class="ttl">
     <h1>小児 緊急気管挿管<span>薬剤・気管チューブ計算</span></h1>
-    <span class="draft">案 v0.1</span>
+    <span class="draft">案 v0.2</span>
   </div>
   <label class="wt">
     <span class="wl">体重</span>
@@ -156,13 +157,14 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
     <li>ミダゾラム 0.1mg/kg・フェンタニル 1μg/kg・ロクロニウム 1mg/kg：院内の指定</li>
     <li>希釈方法、拮抗薬と10倍アドレナリンの量：院内の緊急薬剤計算表による</li>
     <li>100倍アドレナリン 1μg/kg：院内の指定</li>
+    <li>10倍アドレナリン 0.01mg/kg（0.1mL/kg）・1回上限1mg：PALSプロバイダーマニュアル（AHA/AAP, 日本語版2021）p.89 図21</li>
     <li>フルマゼニルの1回上限 0.2mg：Shannon M, et al. J Pediatr 1997;131:582-6（PMID 9386663）</li>
-    <li>気管チューブ：PALS（AHA）表56。区分の間の体重は小さい側の区分で表示。3kg未満はサイズを3kgと同じとし、深さは 体重(kg)＋6 cm（ESAIC/BJA 新生児・乳児気道管理GL, Eur J Anaesthesiol 2024;41:3-23, PMID 38018248）</li>
+    <li>気管チューブ：PALSプロバイダーマニュアル（日本語版2021）p.226-227 表56。区分の間の体重は小さい側の区分で表示。3kg未満はサイズを3kgと同じとし、深さは 体重(kg)＋6 cm（ESAIC/BJA 新生児・乳児気道管理GL, Eur J Anaesthesiol 2024;41:3-23, PMID 38018248）</li>
     <li>液量は 1mL未満を0.01mL、1mL以上を0.1mL単位で四捨五入</li>
   </ul>
   <h2>データの扱い</h2>
   <ul><li>入力した体重はこの端末の画面内だけで計算し、保存も送信もしません。</li></ul>
-  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.1（2026-10-17）</p>
+  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.2（2026-10-17）</p>
 </footer>
 
 <script src="calc.js"></script>
@@ -187,15 +189,16 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
     if (!e) {
       return '<p class="ett-note"><b>' + C.ETT_MAX + 'kgを超えるため早見表の範囲外です。</b>年齢・体格から成人用のサイズで判断してください。</p>';
     }
+    const band = (r) => (r.color ? r.color + ' ' : '') + r.label;
     const rows = C.ETT.map((r) =>
-      '<tr' + (r === e.row ? ' class="hit"' : '') + '><td>' + r.label + ' <small>' + r.age + '</small></td><td>' +
+      '<tr' + (r === e.row ? ' class="hit"' : '') + '><td>' + band(r) + ' <small>' + r.age + '</small></td><td>' +
       r.cuff + '</td><td>' + r.uncuff + '</td><td>' + r.depth + '</td></tr>').join('');
     return '<div class="ett-row">' +
       '<div class="ett-v"><span>カフ付き</span><b>' + e.cuff + '</b></div>' +
       '<div class="ett-v"><span>カフなし</span><b>' + e.uncuff + '</b></div>' +
       '<div class="ett-v dp"><span>口唇での深さ</span><b>' + e.depth + '</b><i> cm</i></div>' +
       '</div>' +
-      '<p class="ett-note">区分：<b>' + e.row.label + '</b>（目安 ' + e.row.age + '）。前後0.5mmのサイズも用意' +
+      '<p class="ett-note">区分：<b>' + band(e.row) + '</b>（目安 ' + e.row.age + '）。前後0.5mmのサイズも用意' +
       (e.under3 ? '。<b>3kg未満：サイズは3kgと同じ、深さは 体重＋6 cm</b>' : '') + '</p>' +
       '<details><summary>早見表をすべて表示</summary><table class="tbl"><tr><th>体重（目安年齢）</th><th>カフ付き</th><th>カフなし</th><th>口唇まで cm</th></tr>' +
       rows + '</table></details>';
