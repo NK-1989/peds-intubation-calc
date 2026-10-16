@@ -94,6 +94,18 @@ t('気管チューブ：PALS 表56 の区分と境界', () => {
   assert.strictEqual(C.ett(36.1), null);
 });
 
+t('i-gel：体重区分と境界（境界では2サイズ）', () => {
+  const cases = [
+    [1.9, []], [2, ['1']], [4.9, ['1']], [5, ['1', '1.5']], [7, ['1.5']], [9.9, ['1.5']],
+    [10, ['1.5', '2']], [12, ['1.5', '2']], [12.1, ['2']], [24.9, ['2']], [25, ['2', '2.5']],
+    [30, ['2.5']], [35, ['2.5']], [35.1, ['3']], [49.9, ['3']], [50, ['4']], [90, ['4']], [90.1, ['5']],
+  ];
+  for (const [w, sizes] of cases) assert.deepStrictEqual(C.igel(w).sizes, sizes, w + 'kg');
+  assert.strictEqual(C.igel(11).overlap, true);
+  assert.strictEqual(C.igel(7).overlap, false);
+  assert.deepStrictEqual(C.compute(7).igel.sizes, ['1.5']);
+});
+
 t('入力範囲外は計算しない', () => {
   assert.strictEqual(C.compute(0.4), null);
   assert.strictEqual(C.compute(100.1), null);

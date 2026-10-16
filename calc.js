@@ -23,6 +23,25 @@
     { min: 30, color: '緑',     label: '30〜36kg', age: '10〜11歳',   cuff: '6.0', uncuff: '—',   depth: '18.5〜19.5' },
   ];
 
+  // i-gel（声門上器具）の体重区分。文献どおり両端を含む区間で、境界では2サイズが当てはまる
+  //   1：Kayhan 2015（PMID 25793219）  1.5〜2.5：Abukawa 2012（PMID 22310833）
+  //   3〜5：成人の区分（Guerrier 2019, PMID 30336273。3は「50kg未満」なので小児用2.5の上限35kgの次から）
+  const IGEL = [
+    { size: '1',   min: 2,  max: 5,        text: '2〜5kg' },
+    { size: '1.5', min: 5,  max: 12,       text: '5〜12kg' },
+    { size: '2',   min: 10, max: 25,       text: '10〜25kg' },
+    { size: '2.5', min: 25, max: 35,       text: '25〜35kg' },
+    { size: '3',   min: 35, max: 50,       text: '50kg未満（成人）', openMin: true, openMax: true },
+    { size: '4',   min: 50, max: 90,       text: '50〜90kg（成人）' },
+    { size: '5',   min: 90, max: Infinity, text: '90kg超（成人）', openMin: true },
+  ];
+
+  function igel(w) {
+    const hits = IGEL.filter((r) =>
+      (r.openMin ? w > r.min : w >= r.min) && (r.openMax ? w < r.max : w <= r.max));
+    return { sizes: hits.map((r) => r.size), rows: hits, overlap: hits.length > 1 };
+  }
+
   // 薬剤
   //   perKg: 1回量（unit/kg）  conc: 投与液の濃度（unit/mL）
   //   total: 希釈して作る液量（mL）。原液のものは null
@@ -122,10 +141,10 @@
     if (!isValidWeight(w)) return null;
     const drugs = {};
     for (const id of Object.keys(DRUGS)) drugs[id] = drug(id, w);
-    return { w, ett: ett(w), drugs };
+    return { w, ett: ett(w), igel: igel(w), drugs };
   }
 
-  const api = { W_MIN, W_MAX, ETT_MAX, ETT, DRUGS, roundTo, roundVol, roundAmount, isValidWeight, ett, drug, compute };
+  const api = { W_MIN, W_MAX, ETT_MAX, ETT, IGEL, DRUGS, roundTo, roundVol, roundAmount, isValidWeight, ett, igel, drug, compute };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.Calc = api;
 })(typeof self !== 'undefined' ? self : this);

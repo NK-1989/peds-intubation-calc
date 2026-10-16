@@ -74,6 +74,13 @@ section:first-child h2{margin-top:4px}
 .ett-v i{font-style:normal;font-size:13px;font-weight:700;color:var(--navy)}
 .ett-note{font-size:13px;color:var(--sub);margin-top:8px}
 .ett-note b{color:var(--ink)}
+.ig{display:flex;align-items:center;gap:12px;margin-top:12px;padding:8px 14px;border-radius:8px;background:var(--navy-bg)}
+.ig .igl{font-size:15px;font-weight:700;color:var(--navy);line-height:1.2}
+.ig .igl small{display:block;font-size:11px;font-weight:400;color:var(--sub)}
+.ig b{margin-left:auto;font-size:28px;line-height:1.15;color:var(--navy);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ig b i{font-style:normal;font-size:14px;font-weight:700}
+.ig .ig-na{margin-left:auto;font-size:14px;font-weight:700;color:var(--warn)}
+.ig-tbl{max-width:320px}
 details{margin-top:8px;font-size:13px}
 summary{cursor:pointer;color:var(--navy);font-weight:700;padding:4px 0}
 .tbl{width:100%;border-collapse:collapse;margin-top:6px;font-size:13px}
@@ -121,7 +128,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
 <header class="top">
   <div class="ttl">
     <h1>小児 緊急気管挿管<span>薬剤・気管チューブ計算</span></h1>
-    <span class="draft">案 v0.2</span>
+    <span class="draft">案 v0.3</span>
   </div>
   <label class="wt">
     <span class="wl">体重</span>
@@ -132,10 +139,10 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
 </header>
 
 <main>
-  <p class="lead" id="lead">体重を入力すると、気管チューブのサイズと<br>薬剤の投与量（mL）を表示します</p>
+  <p class="lead" id="lead">体重を入力すると、気管チューブ・i-gelのサイズと<br>薬剤の投与量（mL）を表示します</p>
   <div id="out" hidden>
     <section class="sec-n">
-      <h2>気管チューブ <small>内径mm</small></h2>
+      <h2>気管チューブ・i-gel <small>チューブは内径mm</small></h2>
       <div class="ett" id="ett"></div>
     </section>
     <section class="sec-g">
@@ -160,15 +167,16 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
     <li>10倍アドレナリン 0.01mg/kg（0.1mL/kg）・1回上限1mg：PALSプロバイダーマニュアル（AHA/AAP, 日本語版2021）p.89 図21</li>
     <li>フルマゼニルの1回上限 0.2mg：Shannon M, et al. J Pediatr 1997;131:582-6（PMID 9386663）</li>
     <li>気管チューブ：PALSプロバイダーマニュアル（日本語版2021）p.226-227 表56。区分の間の体重は小さい側の区分で表示。3kg未満はサイズを3kgと同じとし、深さは 体重(kg)＋6 cm（ESAIC/BJA 新生児・乳児気道管理GL, Eur J Anaesthesiol 2024;41:3-23, PMID 38018248）</li>
+    <li>i-gel：サイズ1 2〜5kg（Kayhan GE, et al. ScientificWorldJournal 2015:426186, PMID 25793219）、1.5 5〜12kg・2 10〜25kg・2.5 25〜35kg（Abukawa Y, et al. J Anesth 2012;26:357-61, PMID 22310833）、成人の3 50kg未満・4 50〜90kg・5 90kg超（Guerrier G, et al. Anaesth Crit Care Pain Med 2019;38:353-6, PMID 30336273）。境界の体重では両サイズを表示</li>
     <li>液量は 1mL未満を0.01mL、1mL以上を0.1mL単位で四捨五入</li>
   </ul>
   <h2>データの扱い</h2>
   <ul><li>入力した体重はこの端末の画面内だけで計算し、保存も送信もしません。</li></ul>
-  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.2（2026-10-17）</p>
+  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.3（2026-10-17）</p>
 </footer>
 
 <!-- 更新時は ?v= を上げる（古い calc.js がキャッシュから読まれるのを防ぐ） -->
-<script src="calc.js?v=0.2"></script>
+<script src="calc.js?v=0.3"></script>
 <script>
 (function () {
   'use strict';
@@ -205,6 +213,23 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
       rows + '</table></details>';
   }
 
+  function igelHtml(g) {
+    const all = C.IGEL.map((r) =>
+      '<tr' + (g.rows.includes(r) ? ' class="hit"' : '') + '><td>' + r.size + '</td><td>' + r.text + '</td></tr>').join('');
+    const table = '<details><summary>i-gelのサイズ表</summary><table class="tbl ig-tbl"><tr><th>サイズ</th><th>体重</th></tr>' +
+      all + '</table></details>';
+    if (!g.sizes.length) {
+      return '<div class="ig"><span class="igl">i-gel<small>声門上器具</small></span><span class="ig-na">2kg未満は該当サイズなし</span></div>' +
+        '<p class="ett-note">最小のサイズ1の適応は2〜5kg</p>' + table;
+    }
+    const note = g.overlap
+      ? '<b>2サイズの適応体重が重なる体重です</b>（' + g.rows.map((r) => r.size + '：' + r.text).join('／') + '）'
+      : '適応 ' + g.rows[0].text;
+    return '<div class="ig"><span class="igl">i-gel<small>声門上器具</small></span><b>' +
+      g.sizes.join('<i> または </i>') + '</b></div>' +
+      '<p class="ett-note">' + note + '</p>' + table;
+  }
+
   function card(id, r, cls) {
     const d = C.DRUGS[id];
     const prepLines = d.total != null
@@ -237,7 +262,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
     }
     msg.textContent = '';
     const D = res.drugs;
-    $('#ett').innerHTML = ettHtml(w, res.ett);
+    $('#ett').innerHTML = ettHtml(w, res.ett) + igelHtml(res.igel);
     $('#pairs').innerHTML =
       '<div class="pair">' + card('mdz', D.mdz, '') + card('flu', D.flu, 'rv') + '</div>' +
       '<div class="pair">' + card('fen', D.fen, '') + card('nal', D.nal, 'rv') + '</div>' +
