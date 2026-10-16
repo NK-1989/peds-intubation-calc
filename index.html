@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1f2a5a">
+<meta name="format-detection" content="telephone=no">
+<title>小児挿管 薬剤計算</title>
+<style>
+:root{
+  --ink:#1a1a1a; --sub:#5b5f68; --line:#d7dae0; --page:#f3f4f7; --card:#fff;
+  --navy:#1f2a5a; --navy-bg:#eef0f7;
+  --green:#17703f; --green-bg:#e7f4ec;
+  --teal:#0f6670; --teal-bg:#e3f1f2;
+  --red:#c8102e; --red-bg:#fdecee;
+  --amber:#a85f00; --amber-bg:#fff3dc;
+  --warn:#b42318; --warn-bg:#fff4f2;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ink:#eceef2; --sub:#a9aeb9; --line:#3a3f4b; --page:#14161b; --card:#1d2027;
+    --navy:#9fb0ff; --navy-bg:#232a44;
+    --green:#5fcf8f; --green-bg:#17271e;
+    --teal:#5cc6d0; --teal-bg:#142629;
+    --red:#ff7a8c; --red-bg:#2e171b;
+    --amber:#f2b45a; --amber-bg:#2c2214;
+    --warn:#ff8a7a; --warn-bg:#2d1916;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--page);color:var(--ink);
+  font-family:"BIZ UDPGothic","BIZ UDゴシック","Hiragino Sans","Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
+  line-height:1.45;font-size:15px}
+.num,.vol b,.ett-v b,input{font-variant-numeric:tabular-nums}
+
+/* 上部固定：タイトルと体重 */
+.top{position:sticky;top:0;z-index:10;background:var(--navy);color:#fff;
+  padding:10px 16px 12px;padding-top:max(10px,env(safe-area-inset-top))}
+@media (prefers-color-scheme: dark){.top{background:#1a2142}}
+.ttl{display:flex;align-items:center;gap:8px;max-width:880px;margin:0 auto}
+.ttl h1{font-size:15px;font-weight:700;line-height:1.25}
+.ttl h1 span{display:block;font-size:12px;font-weight:400;opacity:.85}
+.draft{margin-left:auto;flex:none;border:1.5px solid #fff;border-radius:4px;font-size:12px;font-weight:700;padding:1px 7px}
+.wt{display:flex;align-items:center;gap:10px;max-width:880px;margin:8px auto 0;
+  background:#fff;border-radius:10px;padding:6px 14px}
+.wt .wl{color:var(--navy);font-weight:700;font-size:17px;flex:none}
+@media (prefers-color-scheme: dark){.wt{background:#f4f5f9}.wt .wl{color:#1f2a5a}}
+.wt input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#1a1a1a;
+  font:inherit;font-size:34px;font-weight:700;text-align:right;padding:0}
+.wt input::placeholder{color:#b8bcc6}
+.wt .wu{color:#1a1a1a;font-size:20px;font-weight:700;flex:none}
+.wt:focus-within{box-shadow:0 0 0 3px #f2b45a}
+.msg{max-width:880px;margin:6px auto 0;font-size:13px;min-height:1em;color:#ffd7a0}
+.msg:empty{display:none}
+
+main{max-width:880px;margin:0 auto;padding:14px 16px 8px}
+.lead{color:var(--sub);font-size:14px;text-align:center;padding:28px 8px}
+h2{font-size:15px;font-weight:700;margin:18px 0 8px;display:flex;align-items:center;gap:8px}
+h2::before{content:"";width:5px;height:18px;border-radius:2px;background:var(--c)}
+h2 small{font-weight:400;font-size:12px;color:var(--sub)}
+.sec-n{--c:var(--navy)} .sec-g{--c:var(--green)} .sec-r{--c:var(--red)}
+section:first-child h2{margin-top:4px}
+
+/* 気管チューブ */
+.ett{background:var(--card);border:1.5px solid var(--navy);border-radius:12px;padding:12px 14px}
+.ett-row{display:grid;grid-template-columns:1fr 1fr 1.6fr;gap:8px}
+.ett-v{background:var(--navy-bg);border-radius:8px;padding:8px 4px;text-align:center;white-space:nowrap}
+.ett-v span{display:block;font-size:12px;color:var(--sub)}
+.ett-v b{font-size:28px;line-height:1.15;color:var(--navy)}
+.ett-v.dp b{font-size:22px;line-height:1.45}
+@media (max-width:359px){.ett-row{grid-template-columns:1fr 1fr}.ett-v.dp{grid-column:1/-1}}
+.ett-v i{font-style:normal;font-size:13px;font-weight:700;color:var(--navy)}
+.ett-note{font-size:13px;color:var(--sub);margin-top:8px}
+.ett-note b{color:var(--ink)}
+details{margin-top:8px;font-size:13px}
+summary{cursor:pointer;color:var(--navy);font-weight:700;padding:4px 0}
+.tbl{width:100%;border-collapse:collapse;margin-top:6px;font-size:13px}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:center}
+.tbl th{font-size:12px;color:var(--sub);font-weight:700}
+.tbl td:first-child{text-align:left}
+.tbl small{color:var(--sub)}
+.tbl tr.hit td{background:var(--navy-bg);font-weight:700}
+
+/* 薬剤カード */
+.pair{display:grid;gap:8px;margin-bottom:10px}
+@media (min-width:640px){.pair{grid-template-columns:1fr 1fr}}
+.card{--c:var(--green);--bg:var(--green-bg);background:var(--card);border:1.5px solid var(--c);border-radius:12px;overflow:hidden}
+.card.rv{--c:var(--teal);--bg:var(--teal-bg)}
+.card.res{--c:var(--red);--bg:var(--red-bg)}
+.card.pre{--c:var(--amber);--bg:var(--amber-bg)}
+.card .hd{display:flex;align-items:baseline;gap:8px;background:var(--bg);padding:7px 12px;flex-wrap:wrap}
+.card .tag{background:var(--c);color:#fff;font-size:12px;font-weight:700;border-radius:4px;padding:1px 7px;align-self:center}
+@media (prefers-color-scheme: dark){.card .tag{color:#111}}
+.card h3{font-size:17px;font-weight:700;color:var(--c)}
+.card h3 small{font-size:12px;font-weight:400;color:var(--sub);margin-left:2px}
+.card .pk{margin-left:auto;font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap}
+.card .bd{padding:8px 12px 10px}
+.vol{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.vol b{font-size:34px;line-height:1.1;font-weight:700}
+.vol .u{font-size:18px;font-weight:700}
+.vol .amt{font-size:14px;color:var(--sub);margin-left:4px}
+.vol .cap{font-size:12px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:0 5px}
+.prep{margin-top:6px;font-size:13px;border-top:1px dashed var(--line);padding-top:6px;display:grid;grid-template-columns:auto 1fr;gap:2px 8px}
+.prep dt{color:var(--sub)}
+.prep dd b{font-weight:700}
+.nw{white-space:nowrap}
+.wn{margin-top:6px;font-size:12.5px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:4px 8px}
+.alert{border-left:4px solid var(--red);background:var(--card);border-radius:6px;padding:8px 12px;font-size:13px;margin-bottom:10px}
+.alert b{color:var(--red)}
+
+footer{max-width:880px;margin:10px auto 0;padding:12px 16px 28px;font-size:12px;color:var(--sub);line-height:1.6}
+footer h2{font-size:13px;margin:12px 0 4px;--c:var(--sub)}
+footer ul{padding-left:1.2em}
+footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="ttl">
+    <h1>小児 緊急気管挿管<span>薬剤・気管チューブ計算</span></h1>
+    <span class="draft">案 v0.1</span>
+  </div>
+  <label class="wt">
+    <span class="wl">体重</span>
+    <input id="w" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="0.0" aria-label="体重（kg）">
+    <span class="wu">kg</span>
+  </label>
+  <p class="msg" id="msg" role="status" aria-live="polite"></p>
+</header>
+
+<main>
+  <p class="lead" id="lead">体重を入力すると、気管チューブのサイズと<br>薬剤の投与量（mL）を表示します</p>
+  <div id="out" hidden>
+    <section class="sec-n">
+      <h2>気管チューブ <small>内径mm</small></h2>
+      <div class="ett" id="ett"></div>
+    </section>
+    <section class="sec-g">
+      <h2>薬剤と拮抗薬 <small>拮抗薬も挿管前に準備</small></h2>
+      <div id="pairs"></div>
+    </section>
+    <section class="sec-r">
+      <h2>アドレナリン</h2>
+      <div class="alert"><b>どちらも 0.1 mL/kg ですが、濃度が10倍違います。</b>シリンジに「10倍」「100倍」を必ず書く。</div>
+      <div class="pair" id="adr"></div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <p class="must">計算結果は目安です。投与前に、体重・濃度・mLを声に出してダブルチェックしてください。</p>
+  <h2>この計算の根拠</h2>
+  <ul>
+    <li>ミダゾラム 0.1mg/kg・フェンタニル 1μg/kg・ロクロニウム 1mg/kg：院内の指定</li>
+    <li>希釈方法、拮抗薬と10倍アドレナリンの量：院内の緊急薬剤計算表による</li>
+    <li>100倍アドレナリン 1μg/kg：院内の指定</li>
+    <li>フルマゼニルの1回上限 0.2mg：Shannon M, et al. J Pediatr 1997;131:582-6（PMID 9386663）</li>
+    <li>気管チューブ：PALS（AHA）表56。区分の間の体重は小さい側の区分で表示。3kg未満はサイズを3kgと同じとし、深さは 体重(kg)＋6 cm（ESAIC/BJA 新生児・乳児気道管理GL, Eur J Anaesthesiol 2024;41:3-23, PMID 38018248）</li>
+    <li>液量は 1mL未満を0.01mL、1mL以上を0.1mL単位で四捨五入</li>
+  </ul>
+  <h2>データの扱い</h2>
+  <ul><li>入力した体重はこの端末の画面内だけで計算し、保存も送信もしません。</li></ul>
+  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.1（2026-10-17）</p>
+</footer>
+
+<script src="calc.js"></script>
+<script>
+(function () {
+  'use strict';
+  const C = window.Calc;
+  const $ = (s) => document.querySelector(s);
+  const input = $('#w'), msg = $('#msg'), out = $('#out'), lead = $('#lead');
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // 全角数字・全角ピリオド・読点を半角に直してから読む
+  function parseWeight(s) {
+    const t = s.replace(/[０-９．]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/[,、]/g, '.').trim();
+    if (!/^\d+(\.\d+)?$/.test(t)) return NaN;
+    return parseFloat(t);
+  }
+
+  function ettHtml(w, e) {
+    if (!e) {
+      return '<p class="ett-note"><b>' + C.ETT_MAX + 'kgを超えるため早見表の範囲外です。</b>年齢・体格から成人用のサイズで判断してください。</p>';
+    }
+    const rows = C.ETT.map((r) =>
+      '<tr' + (r === e.row ? ' class="hit"' : '') + '><td>' + r.label + ' <small>' + r.age + '</small></td><td>' +
+      r.cuff + '</td><td>' + r.uncuff + '</td><td>' + r.depth + '</td></tr>').join('');
+    return '<div class="ett-row">' +
+      '<div class="ett-v"><span>カフ付き</span><b>' + e.cuff + '</b></div>' +
+      '<div class="ett-v"><span>カフなし</span><b>' + e.uncuff + '</b></div>' +
+      '<div class="ett-v dp"><span>口唇での深さ</span><b>' + e.depth + '</b><i> cm</i></div>' +
+      '</div>' +
+      '<p class="ett-note">区分：<b>' + e.row.label + '</b>（目安 ' + e.row.age + '）。前後0.5mmのサイズも用意' +
+      (e.under3 ? '。<b>3kg未満：サイズは3kgと同じ、深さは 体重＋6 cm</b>' : '') + '</p>' +
+      '<details><summary>早見表をすべて表示</summary><table class="tbl"><tr><th>体重（目安年齢）</th><th>カフ付き</th><th>カフなし</th><th>口唇まで cm</th></tr>' +
+      rows + '</table></details>';
+  }
+
+  function card(id, r, cls) {
+    const d = C.DRUGS[id];
+    const prepLines = d.total != null
+      ? '<dt>調製</dt><dd>' + esc(d.prep) + ' <b class="nw">＝ 計' + d.total + 'mL</b></dd>'
+      : '<dt>調製</dt><dd>' + esc(d.prep) + (r.vials > 1 ? ' ・ <b>' + r.vials + '本</b>必要' : '') + '</dd>';
+    return '<article class="card ' + cls + '">' +
+      '<div class="hd"><span class="tag">' + d.role + '</span><h3>' + d.name + (d.sub ? '<small>（' + d.sub + '）</small>' : '') + '</h3>' +
+      '<span class="pk">' + d.perKg + ' ' + d.unit + '/kg</span></div>' +
+      '<div class="bd"><div class="vol"><b>' + r.vol + '</b><span class="u">mL</span>' +
+      '<span class="amt">＝ ' + r.dose + ' ' + d.unit + '</span>' +
+      (r.capped ? '<span class="cap">上限 ' + d.max + d.unit + '</span>' : '') + '</div>' +
+      '<dl class="prep">' + prepLines + '<dt>濃度</dt><dd>' + d.concText + '</dd></dl>' +
+      r.warns.map((m) => '<p class="wn">' + esc(m) + '</p>').join('') +
+      '</div></article>';
+  }
+
+  function render() {
+    const raw = input.value;
+    if (raw.trim() === '') {
+      msg.textContent = '';
+      out.hidden = true; lead.hidden = false;
+      return;
+    }
+    const w = parseWeight(raw);
+    const res = C.compute(w);
+    if (!res) {
+      msg.textContent = '体重は ' + C.W_MIN + '〜' + C.W_MAX + ' kg の数字で入力してください';
+      out.hidden = true; lead.hidden = false;
+      return;
+    }
+    msg.textContent = '';
+    const D = res.drugs;
+    $('#ett').innerHTML = ettHtml(w, res.ett);
+    $('#pairs').innerHTML =
+      '<div class="pair">' + card('mdz', D.mdz, '') + card('flu', D.flu, 'rv') + '</div>' +
+      '<div class="pair">' + card('fen', D.fen, '') + card('nal', D.nal, 'rv') + '</div>' +
+      '<div class="pair">' + card('roc', D.roc, '') + card('sug', D.sug, 'rv') + '</div>';
+    $('#adr').innerHTML = card('adr10', D.adr10, 'res') + card('adr100', D.adr100, 'pre');
+    out.hidden = false; lead.hidden = true;
+  }
+
+  input.addEventListener('input', render);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
+
+  // 動作確認用：URL末尾の #w=11 で体重を入れた状態で開く（保存はしない）
+  const m = location.hash.match(/^#w=([\d.]+)$/);
+  if (m) input.value = m[1];
+  render();
+})();
+</script>
+</body>
+</html>
