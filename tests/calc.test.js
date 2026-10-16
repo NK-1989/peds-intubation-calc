@@ -19,7 +19,9 @@ t('体重11kg：エクセルの表示値と一致', () => {
   assert.strictEqual(r.roc.vol, 1.1);
   assert.strictEqual(r.sug.vol, 1.8);
   assert.strictEqual(r.adr10.vol, 1.1);
-  assert.strictEqual(r.adr100.vol, 1.1); // 100倍（10μg/mL）で 1μg/kg
+  assert.strictEqual(r.adr100.vol, 1);   // エクセル25行目：1mL＝1μg/kg
+  assert.strictEqual(r.adr100.prep, '10倍アドレナリン 1.1mL ＋ 5%糖液 8.9mL');
+  assert.strictEqual(r.adr100.conc, 11); // 11 μg/mL
 });
 
 t('1mL以上はエクセルと同じ丸め、1mL未満は差が0.05mL以内（0.5〜100kg、0.1kg刻み）', () => {
@@ -68,11 +70,24 @@ t('希釈液が10mLを超えると警告、0.1mL未満も警告', () => {
   assert.strictEqual(C.drug('mdz', 1).warns.length, 0);
 });
 
-t('10倍と100倍アドレナリンは同じmL・10倍違う量', () => {
-  const a = C.drug('adr10', 7.3), b = C.drug('adr100', 7.3);
-  assert.strictEqual(a.vol, b.vol);
-  assert.strictEqual(a.dose, 73);
-  assert.strictEqual(b.dose, 7.3);
+t('昇圧用アドレナリン：エクセル25行目と同じ作り方で、1kg以上はどの体重でも約1mL', () => {
+  for (let i = 10; i <= 1000; i++) {
+    const w = i / 10;
+    const a = C.drug('adr10', w), b = C.drug('adr100', w);
+    // 採取量は蘇生量の10倍アドレナリンと同じ mL、濃度は 100μg/mL × 採取量 / 10mL
+    assert.strictEqual(b.srcVol, a.vol, w + 'kg');
+    assert.ok(Math.abs(b.vol - 1) <= 0.06, w + 'kg: ' + b.vol + 'mL');
+    assert.strictEqual(b.dose, C.roundAmount(w));
+    if (w >= 10) {
+      // 10kg以上は採取量の丸め（0.1mL）もエクセルと同じ。D25 = ROUND(体重×0.001 / (0.1×D11/10), 1)
+      const d11 = excelRound1(w * 0.01 / 0.1);
+      const d25 = excelRound1(w * 0.001 / (0.1 * d11 / 10));
+      assert.ok(Math.abs(b.vol - d25) <= 0.05 + 1e-9, w + 'kg: app ' + b.vol + ' / excel ' + d25);
+    }
+  }
+  assert.strictEqual(C.drug('adr100', 2.4).prep, '10倍アドレナリン 0.24mL ＋ 5%糖液 9.76mL');
+  assert.ok(C.drug('adr100', 0.5).warns.some((m) => m.includes('採取量が0.1mL未満')));
+  assert.strictEqual(C.drug('adr100', 100).prep, '10倍アドレナリン 10mL（希釈なし）');
 });
 
 t('気管チューブ：PALS 表56 の区分と境界', () => {

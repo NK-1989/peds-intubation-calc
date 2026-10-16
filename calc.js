@@ -76,9 +76,11 @@
       name: '10倍アドレナリン', role: '蘇生量', perKg: 10, unit: 'μg', conc: 100, concText: '100 μg/mL（0.1 mg/mL）',
       prep: 'アドレナリン 1mg/1mL を 1mL ＋ 5%糖液 9mL', total: 10, max: 1000,
     },
+    // エクセル25行目と同じ作り方：蘇生量の10倍アドレナリン（その子の1回量）を計10mLに薄める。
+    // 濃度は体重によって変わり、1mL＝1μg/kg になる
     adr100: {
-      name: '100倍アドレナリン', role: '昇圧量', perKg: 1, unit: 'μg', conc: 10, concText: '10 μg/mL（0.01 mg/mL）',
-      prep: '10倍アドレナリン 1mL ＋ 5%糖液 9mL', total: 10,
+      name: '昇圧用アドレナリン', sub: '体重別希釈', role: '昇圧量', perKg: 1, unit: 'μg',
+      dilutedFrom: 'adr10', total: 10,
     },
   };
 
@@ -122,6 +124,7 @@
 
   function drug(id, w) {
     const d = DRUGS[id];
+    if (d.dilutedFrom) return dilutedDrug(id, w);
     const raw = w * d.perKg;
     const capped = d.max != null && raw > d.max;
     const dose = capped ? d.max : raw;
@@ -134,7 +137,26 @@
       warns.push('1回量が調製量（' + d.total + 'mL）を超えます。2セット調製してください');
     }
     if (vol < 0.1) warns.push('0.1mL未満：正確に量れないため、さらに希釈を検討');
-    return { id, dose: roundAmount(dose), vol, capped, vials, warns };
+    return { id, dose: roundAmount(dose), vol, capped, vials, warns, prep: d.prep, total: d.total, concText: d.concText };
+  }
+
+  // 体重別に希釈する薬剤（昇圧用アドレナリン）。元の液の採取量は、画面に出す元の薬剤の1回量（mL）と同じにする
+  function dilutedDrug(id, w) {
+    const d = DRUGS[id];
+    const src = drug(d.dilutedFrom, w);
+    const conc = DRUGS[d.dilutedFrom].conc * src.vol / d.total;
+    const dose = w * d.perKg;
+    const vol = roundVol(dose / conc);
+    const diluent = roundTo(d.total - src.vol, 2);
+    const srcName = DRUGS[d.dilutedFrom].name;
+    const warns = [];
+    if (src.vol < 0.1) warns.push(srcName + 'の採取量が0.1mL未満：正確に量れない');
+    return {
+      id, dose: roundAmount(dose), vol, capped: false, vials: null, warns, total: d.total,
+      prep: diluent > 0 ? srcName + ' ' + src.vol + 'mL ＋ 5%糖液 ' + diluent + 'mL' : srcName + ' ' + src.vol + 'mL（希釈なし）',
+      concText: roundAmount(conc) + ' μg/mL（体重で変わる）',
+      srcVol: src.vol, conc: roundAmount(conc),
+    };
   }
 
   function compute(w) {

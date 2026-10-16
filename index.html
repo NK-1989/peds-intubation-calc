@@ -128,7 +128,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
 <header class="top">
   <div class="ttl">
     <h1>小児 緊急気管挿管<span>薬剤・気管チューブ計算</span></h1>
-    <span class="draft">案 v0.4</span>
+    <span class="draft">案 v0.5</span>
   </div>
   <label class="wt">
     <span class="wl">体重</span>
@@ -151,7 +151,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
     </section>
     <section class="sec-r">
       <h2>アドレナリン</h2>
-      <div class="alert"><b>どちらも 0.1 mL/kg ですが、濃度が10倍違います。</b>シリンジに「10倍」「100倍」を必ず書く。</div>
+      <div class="alert"><b>蘇生用（0.1 mL/kg）と昇圧用（1 mL）は濃度が違います。</b>昇圧用は子どもごとに濃度が変わるので、シリンジに「昇圧用」と体重・濃度を必ず書く。</div>
       <div class="pair" id="adr"></div>
     </section>
   </div>
@@ -163,7 +163,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
   <ul>
     <li>ミダゾラム 0.1mg/kg・フェンタニル 1μg/kg・ロクロニウム 1mg/kg：院内の指定</li>
     <li>希釈方法、拮抗薬と10倍アドレナリンの量：院内の緊急薬剤計算表による</li>
-    <li>100倍アドレナリン 1μg/kg：院内の指定</li>
+    <li>昇圧用アドレナリン 1μg/kg：院内の指定。作り方は院内の緊急薬剤計算表（25行目）と同じで、蘇生量の10倍アドレナリンを5%糖液で計10mLに薄めると 1mL＝1μg/kg になる</li>
     <li>10倍アドレナリン 0.01mg/kg（0.1mL/kg）・1回上限1mg：PALSプロバイダーマニュアル（AHA/AAP, 日本語版2021）p.89 図21</li>
     <li>フルマゼニルの1回上限 0.2mg：Shannon M, et al. J Pediatr 1997;131:582-6（PMID 9386663）</li>
     <li>気管チューブ：PALSプロバイダーマニュアル（日本語版2021）p.226-227 表56。区分の間の体重は小さい側の区分で表示。3kg未満はサイズを3kgと同じとし、深さは 体重(kg)＋6 cm（ESAIC/BJA 新生児・乳児気道管理GL, Eur J Anaesthesiol 2024;41:3-23, PMID 38018248）</li>
@@ -172,11 +172,11 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
   </ul>
   <h2>データの扱い</h2>
   <ul><li>入力した体重はこの端末の画面内だけで計算し、保存も送信もしません。</li></ul>
-  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.4（2026-10-17）</p>
+  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.5（2026-10-17）</p>
 </footer>
 
 <!-- 更新時は ?v= を上げる（古い calc.js がキャッシュから読まれるのを防ぐ） -->
-<script src="calc.js?v=0.4"></script>
+<script src="calc.js?v=0.5"></script>
 <script>
 (function () {
   'use strict';
@@ -232,16 +232,16 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--ca
 
   function card(id, r, cls) {
     const d = C.DRUGS[id];
-    const prepLines = d.total != null
-      ? '<dt>調製</dt><dd>' + esc(d.prep) + ' <b class="nw">＝ 計' + d.total + 'mL</b></dd>'
-      : '<dt>調製</dt><dd>' + esc(d.prep) + (r.vials > 1 ? ' ・ <b>' + r.vials + '本</b>必要' : '') + '</dd>';
+    const prepLines = r.total != null
+      ? '<dt>調製</dt><dd>' + esc(r.prep) + ' <b class="nw">＝ 計' + r.total + 'mL</b></dd>'
+      : '<dt>調製</dt><dd>' + esc(r.prep) + (r.vials > 1 ? ' ・ <b>' + r.vials + '本</b>必要' : '') + '</dd>';
     return '<article class="card ' + cls + '">' +
       '<div class="hd"><span class="tag">' + d.role + '</span><h3>' + d.name + (d.sub ? '<small>（' + d.sub + '）</small>' : '') + '</h3>' +
       '<span class="pk">' + d.perKg + ' ' + d.unit + '/kg</span></div>' +
       '<div class="bd"><div class="vol"><b>' + r.vol + '</b><span class="u">mL</span>' +
       '<span class="amt">＝ ' + r.dose + ' ' + d.unit + '</span>' +
       (r.capped ? '<span class="cap">上限 ' + d.max + d.unit + '</span>' : '') + '</div>' +
-      '<dl class="prep">' + prepLines + '<dt>濃度</dt><dd>' + d.concText + '</dd></dl>' +
+      '<dl class="prep">' + prepLines + '<dt>濃度</dt><dd>' + r.concText + '</dd></dl>' +
       r.warns.map((m) => '<p class="wn">' + esc(m) + '</p>').join('') +
       '</div></article>';
   }
