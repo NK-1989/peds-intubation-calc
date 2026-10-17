@@ -84,15 +84,22 @@
     },
   };
 
-  // 浮動小数の誤差（1.65×10=16.4999…）で四捨五入がずれないよう、ごくわずかに補正する
+  // 浮動小数の誤差（1.65×10=16.4999…）で四捨五入がずれないよう、ごくわずかに補正する。
+  // 負の数も絶対値で四捨五入する（エクセルの ROUND と同じ）
   function roundTo(x, digits) {
     const f = Math.pow(10, digits);
-    return Math.round(x * f * (1 + 1e-12)) / f;
+    return Math.sign(x) * Math.round(Math.abs(x) * f * (1 + 1e-12)) / f;
   }
 
-  // 液量の丸め：1mL未満は0.01mL単位（1mLシリンジ）、1mL以上は0.1mL単位
+  // 液量の丸め：0.1mL単位で四捨五入（院内の緊急薬剤計算表と同じ）
   function roundVol(ml) {
-    return ml < 1 ? roundTo(ml, 2) : roundTo(ml, 1);
+    return roundTo(ml, 1);
+  }
+
+  // 四捨五入で実際に入る量が目的量から何%ずれるか（小数第1位）。ずれがなければ null
+  function errorPct(actual, target) {
+    const e = (actual - target) / target * 100;
+    return Math.abs(e) < 0.05 ? null : roundTo(e, 1);
   }
 
   // 薬剤量の表示用の丸め（有効数字おおむね3桁）
@@ -127,17 +134,22 @@
     if (d.dilutedFrom) return dilutedDrug(id, w);
     const raw = w * d.perKg;
     const capped = d.max != null && raw > d.max;
-    const dose = capped ? d.max : raw;
-    const vol = roundVol(dose / d.conc);
+    const dose = capped ? d.max : raw;        // 目的量
+    const exact = dose / d.conc;              // 目的量どおりの液量（丸める前）
+    const vol = roundVol(exact);
+    const actual = vol * d.conc;              // 四捨五入した液量で実際に入る量
     const warns = [];
     let vials = null;
     if (d.vial) {
-      vials = Math.ceil(dose / d.vial - 1e-9);
+      vials = Math.ceil(actual / d.vial - 1e-9);
     } else if (d.total != null && vol > d.total) {
       warns.push('1回量が調製量（' + d.total + 'mL）を超えます。2セット調製してください');
     }
-    if (vol < 0.1) warns.push('0.1mL未満：正確に量れないため、さらに希釈を検討');
-    return { id, dose: roundAmount(dose), vol, capped, vials, warns, prep: d.prep, total: d.total, concText: d.concText };
+    if (exact < 0.1) warns.push('目的量が0.1mL未満：さらに希釈して量を増やすことを検討');
+    return {
+      id, dose: roundAmount(actual), target: roundAmount(dose), exact: roundTo(exact, 3), errPct: errorPct(actual, dose),
+      vol, capped, vials, warns, prep: d.prep, total: d.total, concText: d.concText,
+    };
   }
 
   // 体重別に希釈する薬剤（昇圧用アドレナリン）。元の液の採取量は、画面に出す元の薬剤の1回量（mL）と同じにする
@@ -146,13 +158,15 @@
     const src = drug(d.dilutedFrom, w);
     const conc = DRUGS[d.dilutedFrom].conc * src.vol / d.total;
     const dose = w * d.perKg;
-    const vol = roundVol(dose / conc);
-    const diluent = roundTo(d.total - src.vol, 2);
+    const exact = dose / conc;
+    const vol = roundVol(exact);
+    const actual = vol * conc;
+    const diluent = roundTo(d.total - src.vol, 1);
     const srcName = DRUGS[d.dilutedFrom].name;
     const warns = [];
-    if (src.vol < 0.1) warns.push(srcName + 'の採取量が0.1mL未満：正確に量れない');
     return {
-      id, dose: roundAmount(dose), vol, capped: false, vials: null, warns, total: d.total,
+      id, dose: roundAmount(actual), target: roundAmount(dose), exact: roundTo(exact, 3), errPct: errorPct(actual, dose),
+      vol, capped: false, vials: null, warns, total: d.total,
       prep: diluent > 0 ? srcName + ' ' + src.vol + 'mL ＋ 5%糖液 ' + diluent + 'mL' : srcName + ' ' + src.vol + 'mL（希釈なし）',
       concText: roundAmount(conc) + ' μg/mL（体重で変わる）',
       srcVol: src.vol, conc: roundAmount(conc),
@@ -166,7 +180,7 @@
     return { w, ett: ett(w), igel: igel(w), drugs };
   }
 
-  const api = { W_MIN, W_MAX, ETT_MAX, ETT, IGEL, DRUGS, roundTo, roundVol, roundAmount, isValidWeight, ett, igel, drug, compute };
+  const api = { W_MIN, W_MAX, ETT_MAX, ETT, IGEL, DRUGS, roundTo, roundVol, roundAmount, errorPct, isValidWeight, ett, igel, drug, compute };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.Calc = api;
 })(typeof self !== 'undefined' ? self : this);

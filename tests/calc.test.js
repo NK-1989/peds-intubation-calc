@@ -24,7 +24,7 @@ t('体重11kg：エクセルの表示値と一致', () => {
   assert.strictEqual(r.adr100.conc, 11); // 11 μg/mL
 });
 
-t('1mL以上はエクセルと同じ丸め、1mL未満は差が0.05mL以内（0.5〜100kg、0.1kg刻み）', () => {
+t('液量はすべてエクセルの ROUND(…,1) と一致（0.5〜100kg、0.1kg刻み）', () => {
   for (let i = 5; i <= 1000; i++) {
     const w = i / 10;
     const r = C.compute(w).drugs;
@@ -32,19 +32,36 @@ t('1mL以上はエクセルと同じ丸め、1mL未満は差が0.05mL以内（0.
       if (id === 'flu' && w > 20) continue; // フルマゼニルは上限0.2mgをかけているので別に確認
       const [perKg, conc] = EXCEL[id];
       const ex = excelRound1(w * perKg / conc);
-      const app = r[id].vol;
-      if (app >= 1) assert.strictEqual(app, ex, id + ' ' + w + 'kg: app ' + app + ' / excel ' + ex);
-      else assert.ok(Math.abs(app - ex) <= 0.05 + 1e-9, id + ' ' + w + 'kg: app ' + app + ' / excel ' + ex);
+      assert.strictEqual(r[id].vol, ex, id + ' ' + w + 'kg: app ' + r[id].vol + ' / excel ' + ex);
     }
   }
 });
 
-t('浮動小数の誤差で四捨五入がずれない', () => {
+t('浮動小数の誤差で四捨五入がずれない（負の数も絶対値で四捨五入）', () => {
   assert.strictEqual(C.roundTo(1.65, 1), 1.7);
   assert.strictEqual(C.roundTo(0.145, 2), 0.15);
   assert.strictEqual(C.roundTo(2.675, 2), 2.68);
-  assert.strictEqual(C.roundVol(0.45), 0.45);
+  assert.strictEqual(C.roundTo(-3.85, 1), -3.9);
+  assert.strictEqual(C.roundVol(0.45), 0.5);
+  assert.strictEqual(C.roundVol(0.05), 0.1);
   assert.strictEqual(C.roundVol(0.996), 1);
+});
+
+t('四捨五入の誤差（%）：目的量に対する実際の量', () => {
+  // ミダゾラム 11kg：1.1mL ちょうどで誤差なし
+  assert.strictEqual(C.drug('mdz', 11).errPct, null);
+  // スガマデクス 11kg：目的 176mg（1.76mL）→ 1.8mL＝180mg で +2.3%
+  const s = C.drug('sug', 11);
+  assert.deepStrictEqual([s.vol, s.dose, s.target, s.exact, s.errPct], [1.8, 180, 176, 1.76, 2.3]);
+  // ナロキソン 3kg：目的 9μg（0.45mL）→ 0.5mL＝10μg で +11.1%
+  const n3 = C.drug('nal', 3);
+  assert.deepStrictEqual([n3.vol, n3.dose, n3.target, n3.errPct], [0.5, 10, 9, 11.1]);
+  // ロクロニウム 1.04kg：目的 1.04mg（0.104mL）→ 0.1mL＝1mg で −3.8%
+  assert.strictEqual(C.drug('roc', 1.04).errPct, -3.8);
+  // ミダゾラム 0.5kg：目的 0.05mL → 0.1mL で +100%
+  assert.strictEqual(C.drug('mdz', 0.5).errPct, 100);
+  // フルマゼニル上限：目的は 0.2mg
+  assert.deepStrictEqual([C.drug('flu', 35).target, C.drug('flu', 35).errPct], [0.2, null]);
 });
 
 t('フルマゼニルは1回0.2mg（2mL）で頭打ち', () => {
@@ -57,8 +74,10 @@ t('フルマゼニルは1回0.2mg（2mL）で頭打ち', () => {
 });
 
 t('原液の必要本数', () => {
+  // 本数は四捨五入後に実際に引く量で数える（25.1kg：2.51mL→2.5mL＝25mgなので1本）
   assert.strictEqual(C.drug('roc', 25).vials, 1);
-  assert.strictEqual(C.drug('roc', 25.1).vials, 2);
+  assert.strictEqual(C.drug('roc', 25.1).vials, 1);
+  assert.strictEqual(C.drug('roc', 25.5).vials, 2);   // 2.55mL→2.6mL＝26mg
   assert.strictEqual(C.drug('sug', 12.5).vials, 1);   // 200mg ちょうど
   assert.strictEqual(C.drug('sug', 36).vials, 3);     // 576mg
 });
@@ -70,23 +89,23 @@ t('希釈液が10mLを超えると警告、0.1mL未満も警告', () => {
   assert.strictEqual(C.drug('mdz', 1).warns.length, 0);
 });
 
-t('昇圧用アドレナリン：エクセル25行目と同じ作り方で、1kg以上はどの体重でも約1mL', () => {
-  for (let i = 10; i <= 1000; i++) {
+t('昇圧用アドレナリン：エクセル25行目（D11→B25→D25）と全体重で一致', () => {
+  for (let i = 5; i <= 1000; i++) {
     const w = i / 10;
     const a = C.drug('adr10', w), b = C.drug('adr100', w);
     // 採取量は蘇生量の10倍アドレナリンと同じ mL、濃度は 100μg/mL × 採取量 / 10mL
     assert.strictEqual(b.srcVol, a.vol, w + 'kg');
-    assert.ok(Math.abs(b.vol - 1) <= 0.06, w + 'kg: ' + b.vol + 'mL');
-    assert.strictEqual(b.dose, C.roundAmount(w));
-    if (w >= 10) {
-      // 10kg以上は採取量の丸め（0.1mL）もエクセルと同じ。D25 = ROUND(体重×0.001 / (0.1×D11/10), 1)
-      const d11 = excelRound1(w * 0.01 / 0.1);
-      const d25 = excelRound1(w * 0.001 / (0.1 * d11 / 10));
-      assert.ok(Math.abs(b.vol - d25) <= 0.05 + 1e-9, w + 'kg: app ' + b.vol + ' / excel ' + d25);
-    }
+    const d11 = excelRound1(w * 0.01 / 0.1);
+    const d25 = excelRound1(w * 0.001 / (0.1 * d11 / 10));
+    assert.strictEqual(b.vol, d25, w + 'kg: app ' + b.vol + ' / excel ' + d25);
+    assert.strictEqual(b.target, C.roundAmount(w));
+    if (w >= 10) assert.ok(Math.abs(b.vol - 1) <= 0.05 + 1e-9, w + 'kg: ' + b.vol + 'mL'); // 10kg以上はほぼ1mL
   }
-  assert.strictEqual(C.drug('adr100', 2.4).prep, '10倍アドレナリン 0.24mL ＋ 5%糖液 9.76mL');
-  assert.ok(C.drug('adr100', 0.5).warns.some((m) => m.includes('採取量が0.1mL未満')));
+  // 2.4kg：0.2mLを10mLに → 2μg/mL、1.2mL＝2.4μg で誤差なし
+  const s = C.drug('adr100', 2.4);
+  assert.deepStrictEqual([s.prep, s.vol, s.errPct], ['10倍アドレナリン 0.2mL ＋ 5%糖液 9.8mL', 1.2, null]);
+  // 14.5kg：1.5mLを10mLに → 15μg/mL、目的0.967mL → 1mL＝15μg で +3.4%
+  assert.deepStrictEqual([C.drug('adr100', 14.5).vol, C.drug('adr100', 14.5).errPct], [1, 3.4]);
   assert.strictEqual(C.drug('adr100', 100).prep, '10倍アドレナリン 10mL（希釈なし）');
 });
 

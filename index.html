@@ -107,6 +107,10 @@ summary{cursor:pointer;color:var(--air);font-weight:700;padding:4px 0}
 .prep dd b{font-weight:700}
 .nw{white-space:nowrap}
 .wn{margin-top:6px;font-size:12.5px;color:var(--note);background:var(--note-bg);border-radius:8px;padding:4px 8px}
+.rnd{margin-top:4px;font-size:12.5px;color:var(--sub)}
+.rnd b{color:var(--ink)}
+.rnd.big{color:var(--note);background:var(--note-bg);border-radius:8px;padding:4px 8px}
+.rnd.big b{color:var(--note)}
 .alert{background:var(--res-bg);border-radius:12px;padding:9px 12px;font-size:13px;margin-bottom:10px}
 .alert b{color:var(--res)}
 
@@ -120,7 +124,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--so
 <header class="top">
   <div class="ttl">
     <h1>小児 緊急気管挿管<span>薬剤・気管チューブ計算</span></h1>
-    <span class="draft">案 v0.6</span>
+    <span class="draft">案 v0.7</span>
   </div>
   <label class="wt">
     <span class="wl">体重</span>
@@ -160,15 +164,15 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--so
     <li>フルマゼニルの1回上限 0.2mg：Shannon M, et al. J Pediatr 1997;131:582-6（PMID 9386663）</li>
     <li>気管チューブ：PALSプロバイダーマニュアル（日本語版2021）p.226-227 表56。区分の間の体重は小さい側の区分で表示。3kg未満はサイズを3kgと同じとし、深さは 体重(kg)＋6 cm（ESAIC/BJA 新生児・乳児気道管理GL, Eur J Anaesthesiol 2024;41:3-23, PMID 38018248）</li>
     <li>i-gel：インターサージカル i-gel 添付文書（医療機器認証番号 22200BZX00120000、2017年5月 第2版）の「適用患者の体重（目安）」およびIntersurgical社 i-gelポスター（IGELPOSTER issue 3, 2018）。小児サイズの区分は Kayhan GE, et al. ScientificWorldJournal 2015（PMID 25793219）、Abukawa Y, et al. J Anesth 2012;26:357-61（PMID 22310833）とも一致。区分が重なる体重では両サイズを表示</li>
-    <li>液量は 1mL未満を0.01mL、1mL以上を0.1mL単位で四捨五入</li>
+    <li>液量は0.1mL単位で四捨五入（院内の緊急薬剤計算表と同じ）。四捨五入で目的量からずれるときは、その誤差（%）を各薬剤の液量の下に表示し、10%以上は色を付ける。「＝」の右は、表示した液量で実際に入る量</li>
   </ul>
   <h2>データの扱い</h2>
   <ul><li>入力した体重はこの端末の画面内だけで計算し、保存も送信もしません。</li></ul>
-  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.6（2026-10-17）</p>
+  <p style="margin-top:10px">小児 緊急気管挿管フロー 付属ツール ・ 案 v0.7（2026-10-17）</p>
 </footer>
 
 <!-- 更新時は ?v= を上げる（古い calc.js がキャッシュから読まれるのを防ぐ） -->
-<script src="calc.js?v=0.6"></script>
+<script src="calc.js?v=0.7"></script>
 <script>
 (function () {
   'use strict';
@@ -222,6 +226,14 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--so
       '<p class="ett-note">' + note + '</p>' + table;
   }
 
+  // 0.1mL単位に四捨五入して目的量からずれたときの注意書き（誤差10%以上は目立たせる）
+  function roundNote(r, unit) {
+    if (r.errPct == null) return '';
+    const sign = r.errPct > 0 ? '＋' : '−';
+    return '<p class="rnd' + (Math.abs(r.errPct) >= 10 ? ' big' : '') + '">※ 0.1mL単位に四捨五入：目的量 ' +
+      r.target + ' ' + unit + '（' + r.exact + ' mL）に対して <b>' + sign + Math.abs(r.errPct) + '%</b></p>';
+  }
+
   function card(id, r, cls) {
     const d = C.DRUGS[id];
     const prepLines = r.total != null
@@ -233,6 +245,7 @@ footer .must{color:var(--ink);font-weight:700;font-size:13px;background:var(--so
       '<div class="bd"><div class="vol"><b>' + r.vol + '</b><span class="u">mL</span>' +
       '<span class="amt">＝ ' + r.dose + ' ' + d.unit + '</span>' +
       (r.capped ? '<span class="cap">上限 ' + d.max + d.unit + '</span>' : '') + '</div>' +
+      roundNote(r, d.unit) +
       '<dl class="prep">' + prepLines + '<dt>濃度</dt><dd>' + r.concText + '</dd></dl>' +
       r.warns.map((m) => '<p class="wn">' + esc(m) + '</p>').join('') +
       '</div></article>';
